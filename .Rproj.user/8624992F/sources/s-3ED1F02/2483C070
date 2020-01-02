@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1577937133774.000,
+    "dirty" : true,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "2483C070",
+    "lastKnownWriteTime" : 1577940527,
+    "last_content_update" : 1577940988726,
+    "path" : "~/Desktop/Log_Book_View/app.R",
+    "project_path" : "app.R",
+    "properties" : {
+        "cursorPosition" : "10,12",
+        "scrollLine" : "1"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

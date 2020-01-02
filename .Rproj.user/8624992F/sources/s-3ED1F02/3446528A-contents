@@ -1,0 +1,265 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#install.packages("stringr")
+#install.packages("lubridate")
+#install.packages("readxl")
+#install.packages('DT')
+library(lubridate)
+library(stringr)
+library(tidyverse)
+library(shiny)
+library("DT")
+
+```
+### Cleaning User Input Log Book Data  
+
+```{r}
+df<- read.csv("~/Desktop/Log_Book_Final.csv")
+colnames(df)<- c("Proc.By", "Time.Drawn", "Date.Drawn", "Date.Proc", "Time.Rec", "Time.Proc", "Trial", "Site", "ON_Scheduled")
+
+###############
+# Clear blank char and 
+# fill missing input
+###############
+
+df$Proc.By<- substr(str_trim(df$Proc.By, "both"), 1, 2)
+df[1: length(df$ON_Scheduled), "ON_Scheduled"]<- str_trim(toupper(df[1: length(df$Scheduled), "ON_Scheduled"])) 
+df$ON_Scheduled <- as.character(df$ON_Scheduled)
+unique(df$ON_Scheduled)
+df$ON_Scheduled[which(df$ON_Scheduled != "YES")]<- NA
+df$ON_Scheduled[which(is.na(df$ON_Scheduled))]<- "NO"
+
+###############
+# Coerce Date format
+###############
+
+df%>% mutate(Proc.By= substr(str_trim(df$Proc.By, "both"), 1, 2), 
+                 Drawn= as.POSIXct(paste(df$Date.Drawn, df$Time.Drawn), format="%m / %d / %Y %H : %M"),
+                 Rec= as.POSIXct(paste(df$Date.Drawn, df$Time.Rec), format="%m / %d / %Y %H : %M"),
+                 Proc= as.POSIXct(paste(df$Date.Proc, df$Time.Proc), format="%m / %d / %Y %H : %M"),
+                 Trial= str_trim(df$Trial), 
+                 Site= toupper(str_trim(df$Site)
+                 ) ) %>%
+  drop_na()%>%
+  select(Proc.By, Date.Proc, Drawn, Rec, Proc, Trial, Site, ON_Scheduled) -> df11
+
+###############
+# Clean String input information
+###############
+
+#unique(df11$Site)
+df11$Site <- case_when(
+  str_detect(df11$Site, "(EXT)") ~ "EXTERNAL",
+  df11$Site %in% c("(WOLCHOK LAB)", "(MANHATTAN)", "(NYP)", "(WCMC CTRU)", "(MAIN)") ~ "MAIN",
+  str_detect(df11$Site, "(BASKING RIDGE)") | str_detect(df11$Site, "(BSK)") ~ "BASKING_RIDGE",
+  str_detect(df11$Site, "(LVH)") | str_detect(df11$Site, "(LEHIGH)")~ "LEHIGH_VALLEY",
+  str_detect(df11$Site, "(53)") | str_detect(df11$Site, "(35)")~ "53RD ST",
+  str_detect(df11$Site, "(60)")  ~ "60TH_ST",
+  str_detect(df11$Site, "(68)")  ~ "68TH_ST",
+  str_detect(df11$Site, "(64)")  ~ "64TH_ST",
+  str_detect(df11$Site, "(BER)")  ~ "BERGEN",
+  str_detect(df11$Site, "(NOR)")  ~ "NORTHWELL",
+  str_detect(df11$Site, "(WES)") | str_detect(df11$Site, "(WST)") ~ "WESTCHESTER",
+  str_detect(df11$Site, "(NAS)")  ~ "NASSAU",
+  str_detect(df11$Site, "(MON)")  ~ "MONMOUTH",
+  str_detect(df11$Site, "(RVC)") | str_detect(df11$Site, "(ROC)") ~ "ROCKVILLE",
+  str_detect(df11$Site, "(KI)")  ~ "KIMMEL",
+  str_detect(df11$Site, "(HAR)")  ~ "HARTFORD",
+  str_detect(df11$Site, "(COM)") | str_detect(df11$Site, "(CMK)")  ~ "COMMACK",
+  TRUE ~ "OTHER"
+)
+
+###############
+# Create vars for summary
+###############
+
+
+df11 %>% mutate(Date.Proc = as.Date(Date.Proc, format = "%m/%d/%Y"),
+                Year = factor(year(Proc)), 
+                Month = month(Proc), 
+                Weekday = factor(wday(Proc), levels = c(2, 3, 4, 5, 6), labels = c("Mon", "Tue", "Wed", "Thur", "Fri")), 
+                Week = factor(week(Proc)), 
+                Draw.Rec = round(difftime(Drawn, Rec, units = "hours"), 1),
+                Draw.Rec = ifelse(Draw.Rec <= 0, NA, Draw.Rec),
+                Proc.Rec = round(difftime(Proc, Rec, units = "hours"), 1), 
+                Proc.Rec = ifelse(Proc.Rec < 0, NA, Proc.Rec),
+                OverNight_Proc = ifelse(Proc.Rec> 10, "YES", "NO") ) -> df3
+
+```
+```{r, echo=F}
+kableExtra::kable(df3, "html")%>%
+    kableExtra::kable_styling() %>%
+    kableExtra::scroll_box(width = "100%", height = "200px")
+```
+
+
+```{r}
+
+ui <- navbarPage("Sample Processing Log Book",
+                 tabPanel("Cleaned Data",
+                          wellPanel(
+                            fluidRow(
+                              column(width = 11,
+                             align = "center",
+                             h3("Raw Data"),
+                             tabPanel("Log_Book", DT::dataTableOutput("cleandata"))
+                             )
+                            )
+                           )
+                          ),
+                 tabPanel("Summary",
+                          fluidRow(
+                              column(width = 8, 
+                                     plotOutput('plot1', height = 400),
+                                     plotOutput('plot2', height = 400)),
+                              column(width = 3, plotOutput('plot3', height = 900))),
+                          
+                          br(),
+                          
+                          wellPanel(
+                            fluidRow(
+                              column(width = 11,
+                                     height = 100,
+                                     align = "center",
+                                     h3("Control Panel"),
+                                     column(width = 3, 
+                                            selectInput(inputId = "yy", 
+                                                        label = "Select_Year", 
+                                                        choices = c("2019" = "2019", 
+                                                          "2018" = "2018",
+                                                          "2017" = "2017"))),
+                                     column(width = 3,
+                                            offset = 2,
+                                            selectizeInput(inputId = "sort_by", 
+                                                        label = "Sort_By", 
+                                                        options = list(maxItems = 2),
+                                                        choices = c("Proc.By", "Trial", "Site", "ON_Scheduled", "Month", "Weekday", "OverNight_Proc")))
+                                     )
+                              )
+                            )
+                          )
+                 )
+
+
+
+
+
+```
+
+```{r}
+server <- function(input, output) {
+  
+  output$cleandata <- DT::renderDataTable({
+    DT::datatable(df3)
+  })
+  
+  output$plot3<- renderPlot({ 
+    isolate({
+      df3 %>%
+        arrange(Date.Proc) %>%
+        group_by(Date.Proc) %>%
+        summarise(Daily = n()) %>%
+        inner_join(df3[, c("Date.Proc", "Year")])%>%
+        unique() %>%
+        group_by(Year) %>%
+        ggplot()+
+        geom_line(aes(Date.Proc, Daily, color = Year))+
+        geom_smooth(aes(Date.Proc, Daily, color = Year), method = "lm", se = F)+
+        theme_classic()+
+        ggtitle("IMF Daily Sample Processing Trend Over Time")
+    })
+  })
+
+}
+```
+
+
+
+```{r}
+shinyApp(ui, server)
+```
+
+
+
+
+
+
+
+```{r}
+
+
+df3 %>%
+  group_by(Date.Proc) %>%
+  summarise(Daily = n()) %>%
+  inner_join(df3[, c("Date.Proc", "Year")])%>%
+  unique() %>%
+  ggplot()+
+  geom_line(aes(Date.Proc, Daily, group = 1, color = Year))
+  ggplot(aes(x= factor(1),  fill= Trial))+
+  geom_bar(width = 1)+
+  guides(fill= F)+
+  coord_polar(theta = "y")
+
+
+df3 %>% filter(Year== 2018, Month== "Oct") %>%
+  group_by(Trial) %>%
+  ggplot()+
+  geom_histogram(aes(x= Trial, fill= Trial),stat = "count")+
+  coord_flip()+
+  guides(fill= F)
+
+```
+
+```{r}
+df3 %>% filter(Year== 2018, Month== "Aug") %>%
+  group_by(Proc.By) %>%
+  ggplot()+
+  geom_histogram(aes(Proc.By, fill= Proc.By), stat = "count")+
+  coord_flip()+
+  guides(fill=F)+
+  theme_classic()
+
+
+```
+
+```{r}
+df3 %>% filter(Year== 2018, Month== "Aug") %>%
+  group_by(Site) %>%
+  group_by(Site) %>%
+  ggplot()+
+  geom_histogram(aes(Site, fill= Site), stat = "count")+
+  coord_flip()+
+  guides(fill=F)+
+  theme_classic()
+
+
+```
+
+```{r}
+
+df3 %>% group_by(Year, Month) %>% 
+  summarize(n= n())%>% drop_na() %>%
+  ggplot(aes(Month, n, group= Year, color= Year))+
+  geom_line()+
+  geom_point()
+
+```
+
+```{r}
+df3 %>% group_by(Year, Month) %>% 
+  group_by(Weekday) %>%
+  ggplot()+
+  geom_histogram(aes(Weekday, fill= Weekday), stat = "count")+
+  coord_flip()+
+  guides(fill=F)+
+  theme_classic()
+
+summary(df3)
+
+```
+
