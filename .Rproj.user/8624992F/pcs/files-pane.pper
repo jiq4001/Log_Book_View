@@ -1,0 +1,9 @@
+{
+    "path" : "~/Desktop/Log_Book_View/data",
+    "sortOrder" : [
+        {
+            "ascending" : true,
+            "columnIndex" : 2
+        }
+    ]
+}

@@ -1,0 +1,24 @@
+"0","shinyApp(ui, server)"
+"2","
+Listening on http://127.0.0.1:3150
+"
+"2","Warning:"
+"2"," Error in .getReactiveEnvironment()$currentContext: Operation not allowed without an active reactive context. (You tried to do something that can only be done from inside a reactive expression or observer.)
+"
+"2","  67: [37mstop[39m
+"
+"2","  66: [37m.getReactiveEnvironment()$currentContext[39m
+"
+"2","  65: [37mgetCurrentContext[39m
+"
+"2","  61: [37m.subset2(x, ""impl"")$get[39m
+"
+"2","  60: [37m$.reactivevalues[39m
+"
+"2","  52: [34m[1mserver [#5][22m[39m
+"
+"2","Error in .getReactiveEnvironment()$currentContext() : 
+  Operation not allowed without an active reactive context. (You tried to do something that can only be done from inside a reactive expression or observer.)
+"
+"2","
+"
