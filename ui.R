@@ -28,7 +28,7 @@ ui <- dashboardPage(
        # fileInput("file", "Choose CSV File", multiple = FALSE, accept = ".csv"),
       #  br(),
         h2("Cleaned Data"),
-        DT::dataTableOutput("cleandata")
+        DT::dataTableOutput("cleandata", width = "95%")
       ),
       tabItem( # trend all time
         tabName = "Trend",
@@ -44,6 +44,7 @@ ui <- dashboardPage(
           box(
             title = "All Time Pie Chart View Single Factor", width = 3, solidHeader = TRUE, status = "primary",
             "Select Factor for Visulization",
+            br(),
             selectInput(inputId = "pie_f1",
                         label = "Factor to View by", 
                         choices = c("Proc.By" = "Proc.By", 
@@ -54,6 +55,8 @@ ui <- dashboardPage(
                                     "If_AfterHour" = "If_AfterHour",
                                     "OverNight_Proc" = "OverNight_Proc")
             ),
+            hr(),
+            br(),
             dateRangeInput(inputId = "date_range",
                            label = "Date Range",
                            startview = "year",
@@ -66,6 +69,10 @@ ui <- dashboardPage(
             width = 8, offset = 1, solidHeader = TRUE, 
             plotOutput('plot_by1')
           )
+        ),
+        fluidRow(
+          title = "Pie Chart Summary", 
+          DT::dataTableOutput("piedf", width = "80%")
         )
       ),
       tabItem(
@@ -78,8 +85,9 @@ ui <- dashboardPage(
             selectizeInput(inputId = "sort_by", 
                            label = "2 Factors to Summarize by", 
                            options = list(maxItems = 2),
-                           selected = NULL, multiple = T,
+                           multiple = T, selected = c("Weekday", "ON_Scheduled"), 
                            choices = c("If_AfterHour", "Proc.By", "Site", "ON_Scheduled", "Weekday", "OverNight_Proc")),
+            br(),
             dateRangeInput(inputId = "date_range1",
                            label = "Date Range",
                            startview = "year",
@@ -88,11 +96,16 @@ ui <- dashboardPage(
                            min = min("2017-01-01"),
                            max = max("2019-12-31"))
           ),
+          hr(),
           br(),
           box(
             width = 8, offset = 1, solidHeader = TRUE, 
             plotOutput('plot_by2')
           )
+        ),
+        fluidRow(
+          title = "Bar Chart Summary", 
+          DT::dataTableOutput("bardf", width = "80%")
         )
       ),
       tabItem(

@@ -127,6 +127,12 @@ server <- function(input, output) {
       coord_polar("y")+
       theme_void()  
   })
+  
+  output$piedf <- DT::renderDataTable({
+    piedf <- pie_data() %>%
+      mutate(Percentile = round(total/sum(total)*100, 2))
+    piedf
+  })  
   ###########
   # 2 factor bar chart with time range 
   ###########    
@@ -142,6 +148,20 @@ server <- function(input, output) {
     df
   })
   
+  bar_sum <- reactive(({
+    bardf <- bar_data() %>%
+    cbind.data.frame(group = paste(bar_data()[, input$sort_by[[1]]], bar_data()[, input$sort_by[[2]]],  sep = ","))%>%
+      group_by(group) %>%
+      summarise(total = n()) %>%
+      separate(group, into = c(input$sort_by[[1]], input$sort_by[[2]]), sep = ",")
+    bardf %>%
+      group_by(!!!rlang::sym(input$sort_by[[2]]))%>%
+      summarize(Sub_total = sum(total)) -> subtotal
+    bardf %>%
+      left_join(subtotal)%>%
+      mutate(Sub_Percentile = round(total/Sub_total *100, 2)) -> bardf
+    bardf
+  }))
   
   output$plot_by2<- renderPlot({ 
     req(input$sort_by)
@@ -157,6 +177,10 @@ server <- function(input, output) {
         axis.text.x = element_text(angle = 90, hjust = 1)
       )  
   })
+  
+  output$bardf <- DT::renderDataTable({
+    bar_sum()
+  }) 
   ###########
   # sample transfering time 
   ###########   
